@@ -1,0 +1,174 @@
+import { Router } from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { pool } from "../db/pool.js";
+
+const router = Router();
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
+
+/**
+ * POST /api/auth/register
+ * body: { name, email, password, role, branchId?, businessName?, organizationId? }
+ *
+ * Multi-tenant signup rules:
+ *  - role "admin" with NO organizationId → this is a shop owner signing up
+ *    for the first time. We create a brand-new organization (tenant) for
+ *    them automatically, seeded with a trial subscription and one default
+ *    branch, and make them its first admin. This is the self-signup flow
+ *    the SaaS go-to-market plan depends on — no manual provisioning needed.
+ *  - role "seller"/"customer" MUST pass an existing organizationId (their
+ *    employer's or the shop's id) — they're joining a tenant, not creating
+ *    one. Real deployments would replace this with an invite-link/shop-code
+ *    flow instead of a raw id, but the isolation rule is what matters here.
+ */
+router.post("/register", async (req, res) => {
+  const { name, email, password, role = "customer", branchId = null, businessName, organizationId } = req.body;
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  if (role !== "admin" && !organizationId) {
+    return res.status(400).json({ error: "missing_organization" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    let orgId = organizationId;
+
+    if (role === "admin" && !organizationId) {
+      if (!businessName) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ error: "missing_business_name" });
+      }
+      const orgRes = await client.query(
+        `INSERT INTO organizations (name, plan, subscription_status, trial_ends_at)
+         VALUES ($1, 'professional', 'trialing', now() + interval '14 days') RETURNING id`,
+        [businessName]
+      );
+      orgId = orgRes.rows[0].id;
+
+      // give the new tenant one default branch so the app isn't empty on first login
+      const branchRes = await client.query(
+        `INSERT INTO branches (organization_id, name, city) VALUES ($1, 'الفرع الرئيسي', NULL) RETURNING id`,
+        [orgId]
+      );
+      req._defaultBranchId = branchRes.rows[0].id;
+    } else {
+      const orgCheck = await client.query("SELECT id FROM organizations WHERE id = $1", [orgId]);
+      if (!orgCheck.rows.length) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "organization_not_found" });
+      }
+    }
+
+    const existing = await client.query(
+      "SELECT id FROM users WHERE organization_id = $1 AND email = $2",
+      [orgId, email]
+    );
+    if (existing.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ error: "email_taken" });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    const finalBranchId = branchId || req._defaultBranchId || null;
+    const result = await client.query(
+      `INSERT INTO users (organization_id, name, role, branch_id, email, password_hash)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, organization_id, name, role, branch_id, email`,
+      [orgId, name, role, finalBranchId, email, hash]
+    );
+    const user = result.rows[0];
+
+    await client.query("COMMIT");
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role, branchId: user.branch_id, organizationId: user.organization_id },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    res.json({ user, token });
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    console.error(err);
+    res.status(500).json({ error: "register_failed" });
+  } finally {
+    client.release();
+  }
+});
+
+/**
+ * POST /api/auth/login
+ * body: { email, password, organizationId? }
+ * NOTE: because email is only unique WITHIN an organization now (two shops
+ * can each have a "seller1@example.com"), a bare email/password isn't
+ * enough to identify one account across the whole system. For this MVP we
+ * resolve by taking the first matching account if organizationId isn't
+ * given — fine for a single demo tenant, but a real multi-tenant launch
+ * needs a shop-selection step (e.g. a subdomain per shop, or "which shop
+ * do you work at?" screen) before login.
+ */
+router.post("/login", async (req, res) => {
+  const { email, password, organizationId } = req.body;
+  try {
+    const query = organizationId
+      ? "SELECT * FROM users WHERE email = $1 AND organization_id = $2"
+      : "SELECT * FROM users WHERE email = $1 ORDER BY id LIMIT 1";
+    const params = organizationId ? [email, organizationId] : [email];
+    const result = await pool.query(query, params);
+    const user = result.rows[0];
+    if (!user || !user.password_hash) {
+      return res.status(401).json({ error: "invalid_credentials" });
+    }
+    const ok = await bcrypt.compare(password, user.password_hash);
+    if (!ok) return res.status(401).json({ error: "invalid_credentials" });
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role, branchId: user.branch_id, organizationId: user.organization_id },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    res.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        branchId: user.branch_id,
+        organizationId: user.organization_id,
+        email: user.email,
+      },
+      token,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "login_failed" });
+  }
+});
+
+/** GET /api/auth/me — requires Authorization: Bearer <token> */
+router.get("/me", authRequired, async (req, res) => {
+  res.json({ user: req.user });
+});
+
+export function authRequired(req, res, next) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ error: "no_token" });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({ error: "invalid_token" });
+  }
+}
+
+export function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    next();
+  };
+}
+
+export default router;
