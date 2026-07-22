@@ -9,7 +9,7 @@ dotenv.config();
 
 const app = express();
 
-// 🔒 Security Middleware
+// 🔐 Security Middleware
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -49,7 +49,8 @@ app.use('/api/subscriptions', require('./api/routes/subscriptions.routes'));
 app.use('/api/invoices', require('./api/routes/invoices.routes'));
 app.use('/api/payments', require('./api/routes/payments.routes'));
 app.use('/api/reports', require('./api/routes/reports.routes'));
-app.use('/api/cashier', require('./api/routes/cashier.routes')); // ✨ نظام الكاشير
+app.use('/api/cashier', require('./api/routes/cashier.routes'));
+app.use('/api/compliance', require('./api/routes/gulf-compliance.routes')); // ✨ نظام الامتثال الخليجي
 
 // 🏢 404 Handler
 app.use((req, res) => {
