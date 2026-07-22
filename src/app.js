@@ -21,9 +21,9 @@ app.use(morgan('combined'));
 
 // ⚡ Rate Limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'عدد الطلبات كثير جداً، يرجى المحاولة لاحقاً'
 });
 app.use('/api/', limiter);
 
@@ -41,7 +41,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 🔗 API Routes (Will be added)
+// 🔗 API Routes
 app.use('/api/auth', require('./api/routes/auth.routes'));
 app.use('/api/parts', require('./api/routes/parts.routes'));
 app.use('/api/orders', require('./api/routes/orders.routes'));
@@ -49,12 +49,13 @@ app.use('/api/subscriptions', require('./api/routes/subscriptions.routes'));
 app.use('/api/invoices', require('./api/routes/invoices.routes'));
 app.use('/api/payments', require('./api/routes/payments.routes'));
 app.use('/api/reports', require('./api/routes/reports.routes'));
+app.use('/api/cashier', require('./api/routes/cashier.routes')); // ✨ نظام الكاشير
 
-// 🎯  404 Handler
+// 🏢 404 Handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found',
+    message: 'المسار غير موجود',
     path: req.path
   });
 });
@@ -64,7 +65,7 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || 'Internal Server Error',
+    message: err.message || 'خطأ في السيرفر',
     error: process.env.NODE_ENV === 'development' ? err : {}
   });
 });
