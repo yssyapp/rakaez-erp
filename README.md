@@ -1,47 +1,225 @@
-# ركائز لقطع غيار السيارات (Rakaez Auto Parts)
+# Rakaez ERP - نظام إدارة قطع الغيار
 
-هيكل بداية حقيقي (وليس نموذج تجريبي وهمي) لمشروع "ركائز لقطع غيار السيارات"، مبني على:
+## 🚀 نظام متكامل لإدارة متاجر قطع غيار السيارات في السعودية
 
-- **Backend**: Node.js + Express + PostgreSQL (REST API)
-- **Frontend**: React + Vite (نفس فكرة الشاشات الثلاث: العميل / البائع-POS / لوحة تحكم الإدارة)
+### المميزات الرئيسية:
 
-هذا هيكل قابل للتشغيل والتوسعة فعلياً على جهازك أو على سيرفر، ويغطي:
+#### 1. **إدارة الاشتراكات** 💳
+- 3 باقات اشتراك (أساسية - متقدمة - متميزة)
+- السعر بالريال السعودي (37 - 112 - 375 ريال/شهر)
+- إدارة الدفع والفواتير
+- تكامل مع Stripe
 
-- بحث القطع بالاسم / رقم القطعة / رقم الهيكل (VIN)
-- إدارة المخزون مع موقع الرف لكل قطعة
-- نقاط بيع (POS) تُنقص المخزون فوراً عند البيع (زمن حقيقي عبر قاعدة البيانات)
-- تقارير أساسية للإدارة (مبيعات، مخزون منخفض)
+#### 2. **إدارة قطع الغيار** 🔧
+- إضافة وتعديل وحذف القطع
+- تتبع المخزون
+- البحث والتصفية المتقدمة
+- تصنيفات وفئات
 
-الأشياء غير المشمولة بعد (تحتاج تطوير إضافي لاحقاً): تطبيقات iOS/Android الأصلية، التكامل الفعلي مع بوابة ZATCA لإصدار الفاتورة الإلكترونية المعتمدة، المصادقة الكاملة وصلاحيات المستخدمين، والنشر السحابي.
+#### 3. **إدارة الطلبات** 📦
+- إنشاء وتتبع الطلبات
+- إدارة حالة الطلب
+- الفواتير التلقائية
+- تكامل مع ZATCA
 
-## التشغيل السريع
+#### 4. **التقارير والإحصائيات** 📊
+- تقارير المبيعات
+- تحليل الأداء
+- إحصائيات العملاء
+- رسوم بيانية مفصلة
 
-### 1) قاعدة البيانات
+#### 5. **إدارة المستخدمين** 👥
+- إدارة الموظفين
+- صلاحيات وأدوار مختلفة
+- نظام تسجيل الدخول الآمن
+- ملفات شخصية
+
+#### 6. **الذكاء الاصطناعي** 🤖
+- توصيات ذكية (Pro + Enterprise)
+- تنبؤ بالطلب
+- تحليل السلوك
+
+---
+
+## 🛠️ التثبيت
+
+### المتطلبات:
+- Node.js >= 16.0.0
+- MongoDB >= 4.4
+- npm >= 8.0.0
+
+### خطوات التثبيت:
+
 ```bash
-createdb rakaez
-psql rakaez < backend/src/db/schema.sql
-psql rakaez < backend/src/db/seed.sql
-```
+# 1. استنسخ المستودع
+git clone https://github.com/yssyapp/rakaez-erp.git
+cd rakaez-erp
 
-### 2) الباك اند
-```bash
-cd backend
-cp .env.example .env   # عدّل بيانات الاتصال بقاعدة البيانات
+# 2. ثبت المكتبات
 npm install
-npm run dev             # يعمل على http://localhost:4000
+
+# 3. انسخ ملف الإعدادات
+cp .env.example .env
+
+# 4. عدّل ملف .env بالمعلومات الخاصة بك
+# قم بإضافة:
+# - رابط قاعدة البيانات
+# - مفاتيح API
+# - بيانات البريد الإلكتروني
+
+# 5. شغّل التطبيق
+npm run dev
 ```
 
-### 3) الفرونت اند
+---
+
+## 📱 الهيكل العام للمشروع
+
+```
+rakaez-erp/
+├── src/
+│   ├── api/
+│   │   ├── routes/
+│   │   │   ├── auth.routes.js
+│   │   │   ├── parts.routes.js
+│   │   │   ├── orders.routes.js
+│   │   │   ├── subscriptions.routes.js
+│   │   │   ├── invoices.routes.js
+│   │   │   ├── reports.routes.js
+│   │   │   └── payments.routes.js
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   └── validators/
+│   ├── database/
+│   │   ├── models/
+│   │   └── config.js
+│   ├── utils/
+│   ├── config/
+│   └── app.js
+├── frontend/
+│   ├── components/
+│   ├── pages/
+│   ├── styles/
+│   └── App.jsx
+├── tests/
+├── .env.example
+├── package.json
+└── server.js
+```
+
+---
+
+## 🔐 الأمان
+
+- تشفير كلمات المرور بـ bcrypt
+- JWT للمصادقة
+- CORS مفعّل
+- معدلات حماية من الهجمات
+- التحقق من الصيانة (Helmet)
+- تشفير البيانات الحساسة
+
+---
+
+## 🌐 API الأساسي
+
+### المصادقة
+```
+POST   /api/auth/register
+POST   /api/auth/login
+POST   /api/auth/logout
+GET    /api/auth/me
+```
+
+### قطع الغيار
+```
+GET    /api/parts
+GET    /api/parts/:id
+POST   /api/parts
+PUT    /api/parts/:id
+DELETE /api/parts/:id
+```
+
+### الطلبات
+```
+GET    /api/orders
+GET    /api/orders/:id
+POST   /api/orders
+PUT    /api/orders/:id
+DELETE /api/orders/:id
+```
+
+### الاشتراكات
+```
+GET    /api/subscriptions
+POST   /api/subscriptions/checkout
+POST   /api/subscriptions/upgrade
+POST   /api/subscriptions/cancel
+```
+
+### الفواتير
+```
+GET    /api/invoices
+GET    /api/invoices/:id
+POST   /api/invoices/generate
+GET    /api/invoices/:id/pdf
+```
+
+### التقارير
+```
+GET    /api/reports/sales
+GET    /api/reports/products
+GET    /api/reports/customers
+GET    /api/reports/performance
+```
+
+---
+
+## 💳 الدفع
+
+نستخدم **Stripe** لمعالجة الدفع:
+- بطاقات ائتمان
+- محافظ رقمية
+- التحويلات البنكية
+
+---
+
+## 📄 الفواتير
+
+تكامل كامل مع **ZATCA** (الفاتورة الإلكترونية السعودية):
+- إصدار فواتير تلقائية
+- توقيع رقمي
+- ملف حفظ آمن
+- طباعة وتصدير PDF
+
+---
+
+## 🧪 الاختبارات
+
 ```bash
-cd frontend
-npm install
-npm run dev              # يعمل على http://localhost:5173
+npm test
 ```
 
-## الخطوات المقترحة بعد ذلك
+---
 
-1. إضافة المصادقة (JWT) وصلاحيات (عميل / بائع / مدير).
-2. ربط بوابة دفع إلكتروني حقيقية (مثل Moyasar أو HyperPay).
-3. تكامل ZATCA (Fatoora) لإصدار فاتورة ضريبية إلكترونية معتمدة عند كل عملية بيع.
-4. بناء تطبيقات iOS/Android بـ React Native تستهلك نفس الـ API.
-5. نشر الباك اند وقاعدة البيانات على سيرفر سحابي (مثل Railway أو AWS) لضمان الربط الحي بين الفروع.
+## 📞 الدعم
+
+للدعم والأسئلة:
+- البريد الإلكتروني: support@rakaez.sa
+- الهاتف: +966 50 123 4567
+- الموقع: https://rakaez.sa
+
+---
+
+## 📜 الرخصة
+
+MIT License - انظر LICENSE للتفاصيل
+
+---
+
+## 👥 المطورون
+
+- **yssyapp** - المؤسس والمطور الرئيسي
+
+---
+
+**صُنع بـ ❤️ للسعودية** 🇸🇦
