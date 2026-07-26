@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+# أقل صلاحيات ممكنة للـ GITHUB_TOKEN الافتراضي — بدون هذا السطر يحصل التوكن
+# على صلاحية قراءة/كتابة واسعة تلقائياً حتى لو ما يحتاجها أي job هنا فعلياً
+# (كل الأعمال هنا قراءة فقط: checkout، فحص، بناء — بدون أي نشر أو كتابة
+# حقيقية للمستودع حالياً). هذا ما كان يطلبه تنبيه CodeQL بالخمس مواضع.
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
