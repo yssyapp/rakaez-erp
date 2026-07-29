@@ -150,6 +150,38 @@ router.get("/me", authRequired, async (req, res) => {
   res.json({ user: req.user });
 });
 
+/** PUT /api/auth/me — update the logged-in user's own name. */
+router.put("/me", authRequired, async (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: "name_required" });
+  }
+  try {
+    const result = await pool.query(
+      `UPDATE users SET name = $1 WHERE id = $2 RETURNING id, name, role, branch_id, email`,
+      [name.trim(), req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "user_not_found" });
+    }
+    const row = result.rows[0];
+    const user = {
+      id: row.id,
+      name: row.name,
+      role: row.role,
+      branchId: row.branch_id,
+      email: row.email,
+      organizationId: req.user.organizationId,
+    };
+    // Reissue the token so the new name is reflected in future requests too.
+    const token = jwt.sign(user, JWT_SECRET, { expiresIn: "30d" });
+    res.json({ user, token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "update_failed" });
+  }
+});
+
 export function authRequired(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;

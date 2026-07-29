@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="rkGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#8A6508"/>
+    </linearGradient>
+  </defs>
+  <!-- gear ring -->
+  <path fill="url(#rkGold)" d="M50 6c2.6 0 5.1.2 7.6.6l2 10.4c3 .8 5.9 2 8.5 3.5l9-5.8c4 2.8 7.5 6.3 10.3 10.3l-5.8 9c1.5 2.6 2.7 5.5 3.5 8.5l10.4 2c.4 2.5.6 5 .6 7.6s-.2 5.1-.6 7.6l-10.4 2c-.8 3-2 5.9-3.5 8.5l5.8 9c-2.8 4-6.3 7.5-10.3 10.3l-9-5.8c-2.6 1.5-5.5 2.7-8.5 3.5l-2 10.4c-2.5.4-5 .6-7.6.6s-5.1-.2-7.6-.6l-2-10.4c-3-.8-5.9-2-8.5-3.5l-9 5.8c-4-2.8-7.5-6.3-10.3-10.3l5.8-9c-1.5-2.6-2.7-5.5-3.5-8.5l-10.4-2C6.2 55.1 6 52.6 6 50s.2-5.1.6-7.6l10.4-2c.8-3 2-5.9 3.5-8.5l-5.8-9c2.8-4 6.3-7.5 10.3-10.3l9 5.8c2.6-1.5 5.5-2.7 8.5-3.5l2-10.4C44.9 6.2 47.4 6 50 6z"/>
+  <circle cx="50" cy="50" r="27" fill="#3A2C1A"/>
+  <text x="50" y="63" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="bold" fill="url(#rkGold)" text-anchor="middle">R</text>
+</svg>

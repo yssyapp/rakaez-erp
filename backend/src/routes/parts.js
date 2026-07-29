@@ -68,4 +68,112 @@ router.get("/", async (req, res) => {
   res.json(r.rows);
 });
 
+/**
+ * POST /api/parts
+ * Lets a shop owner add a new part to THEIR OWN catalog from the dashboard —
+ * no developer involvement needed. Restricted to seller/admin (checked in
+ * index.js's requireRole for /api/admin, but parts is mounted for both
+ * seller and admin so we check the role inline here instead).
+ */
+router.post("/", async (req, res) => {
+  if (!["admin", "seller"].includes(req.user.role)) return res.status(403).json({ error: "forbidden" });
+  const orgId = req.user.organizationId;
+  const { partNumber, name, brand, category, price, cost, branchId, quantity, minQuantity } = req.body;
+  if (!partNumber || !name || price == null) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const partRes = await client.query(
+      `INSERT INTO parts (organization_id, part_number, name, brand, category, price, cost)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [orgId, partNumber, name, brand || null, category || null, price, cost || 0]
+    );
+    const part = partRes.rows[0];
+
+    if (branchId) {
+      await client.query(
+        `INSERT INTO inventory (part_id, branch_id, quantity, min_quantity)
+         VALUES ($1,$2,$3,$4)
+         ON CONFLICT (part_id, branch_id) DO UPDATE SET quantity = EXCLUDED.quantity`,
+        [part.id, branchId, quantity || 0, minQuantity || 5]
+      );
+    }
+    await client.query("COMMIT");
+    res.status(201).json(part);
+  } catch (err) {
+    await client.query("ROLLBACK");
+    if (err.code === "23505") return res.status(409).json({ error: "part_number_exists" });
+    console.error(err);
+    res.status(500).json({ error: "create_failed" });
+  } finally {
+    client.release();
+  }
+});
+
+/**
+ * PUT /api/parts/:id  — edit price/cost/name/brand/category of an existing part.
+ * :id here is the numeric primary key (not the shop-facing part_number).
+ */
+router.put("/:id", async (req, res) => {
+  if (!["admin", "seller"].includes(req.user.role)) return res.status(403).json({ error: "forbidden" });
+  const { name, brand, category, price, cost } = req.body;
+  const r = await pool.query(
+    `UPDATE parts SET
+       name = COALESCE($1, name),
+       brand = COALESCE($2, brand),
+       category = COALESCE($3, category),
+       price = COALESCE($4, price),
+       cost = COALESCE($5, cost)
+     WHERE id = $6 AND organization_id = $7 RETURNING *`,
+    [name, brand, category, price, cost, req.params.id, req.user.organizationId]
+  );
+  if (!r.rows[0]) return res.status(404).json({ error: "not_found" });
+  res.json(r.rows[0]);
+});
+
+/** DELETE /api/parts/:id */
+router.delete("/:id", async (req, res) => {
+  if (!["admin", "seller"].includes(req.user.role)) return res.status(403).json({ error: "forbidden" });
+  const r = await pool.query(
+    "DELETE FROM parts WHERE id = $1 AND organization_id = $2 RETURNING id",
+    [req.params.id, req.user.organizationId]
+  );
+  if (!r.rows[0]) return res.status(404).json({ error: "not_found" });
+  res.json({ ok: true });
+});
+
+/**
+ * PUT /api/parts/:id/inventory — set stock quantity + shelf location at a branch.
+ * Used by the "monitor inventory" screen; upserts so the owner can set stock
+ * for a branch that has no inventory row yet.
+ */
+router.put("/:id/inventory", async (req, res) => {
+  if (!["admin", "seller"].includes(req.user.role)) return res.status(403).json({ error: "forbidden" });
+  const { branchId, quantity, minQuantity, shelfSection, shelfNumber, shelfLevel } = req.body;
+  if (!branchId) return res.status(400).json({ error: "missing_branchId" });
+
+  // ownership check: the branch must belong to this org
+  const owns = await pool.query(
+    `SELECT p.id FROM parts p WHERE p.id = $1 AND p.organization_id = $2`,
+    [req.params.id, req.user.organizationId]
+  );
+  if (!owns.rows[0]) return res.status(404).json({ error: "not_found" });
+
+  const r = await pool.query(
+    `INSERT INTO inventory (part_id, branch_id, quantity, min_quantity, shelf_section, shelf_number, shelf_level)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)
+     ON CONFLICT (part_id, branch_id) DO UPDATE SET
+       quantity = EXCLUDED.quantity,
+       min_quantity = COALESCE(EXCLUDED.min_quantity, inventory.min_quantity),
+       shelf_section = COALESCE(EXCLUDED.shelf_section, inventory.shelf_section),
+       shelf_number = COALESCE(EXCLUDED.shelf_number, inventory.shelf_number),
+       shelf_level = COALESCE(EXCLUDED.shelf_level, inventory.shelf_level)
+     RETURNING *`,
+    [req.params.id, branchId, quantity ?? 0, minQuantity ?? 5, shelfSection || null, shelfNumber || null, shelfLevel || null]
+  );
+  res.json(r.rows[0]);
+});
+
 export default router;

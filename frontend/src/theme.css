@@ -1,0 +1,182 @@
+/* ركائز — two brand palettes sharing the same gold accent, switched via
+   [data-theme] on <html> (see ThemeContext.jsx). "light" is brown/cream
+   with dark text (good default contrast, easy to read all day). "dark" is
+   the near-black/dark-brown + gold look from the reference mockup — closer
+   to a premium showroom feel but text needs to be light on it. Both are
+   kept side by side on purpose (the shop owner asked NOT to delete either
+   one) so either can be picked per taste, or offered as a user setting
+   later. */
+:root,
+:root[data-theme="light"] {
+  --rakaez-bg: #E7D3B4;           /* light brown page background */
+  --rakaez-bg-soft: #F1E3CC;      /* slightly lighter brown, for cards */
+  --rakaez-surface: #FBF4E7;      /* near-white brown for inputs/panels */
+  --rakaez-gold: #B8860B;         /* primary gold — headings, active states */
+  --rakaez-gold-bright: #D4AF37;  /* brighter gold — buttons, highlights */
+  --rakaez-gold-dark: #8A6508;    /* darker gold — hover/pressed */
+  --rakaez-text: #3A2C1A;         /* dark brown body text, readable on light brown */
+  --rakaez-text-on-header: #FBF4E7;
+  --rakaez-border: #C9AE85;
+  --rakaez-success: #16A34A;
+  --rakaez-danger: #B3261E;
+}
+
+:root[data-theme="dark"] {
+  --rakaez-bg: #14100A;            /* near-black brown, like the reference mockup */
+  --rakaez-bg-soft: #1F1810;
+  --rakaez-surface: #241C13;
+  --rakaez-gold: #D4AF37;
+  --rakaez-gold-bright: #E9C158;
+  --rakaez-gold-dark: #B8860B;
+  --rakaez-text: #F1E3CC;          /* light cream text — readable on near-black */
+  --rakaez-text-on-header: #14100A; /* header bg is bright gold here, so header text goes dark */
+  --rakaez-border: #3A2C1A;
+  --rakaez-success: #4ADE80;
+  --rakaez-danger: #F87171;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--rakaez-bg);
+  font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+  color: var(--rakaez-text);
+}
+
+.rk-app { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+
+.rk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 26px;
+  border-radius: 18px;
+  margin-bottom: 22px;
+  background: linear-gradient(135deg, var(--rakaez-gold-dark), var(--rakaez-gold));
+  color: var(--rakaez-text-on-header);
+  box-shadow: 0 10px 30px -12px rgba(138, 101, 8, 0.5);
+}
+
+.rk-brand { display: flex; align-items: center; gap: 12px; }
+
+.rk-logo {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.rk-header h1 { margin: 0; font-size: 20px; font-weight: 800; color: var(--rakaez-text-on-header); }
+.rk-header p { margin: 2px 0 0; font-size: 12.5px; opacity: 0.9; }
+
+.rk-theme-toggle {
+  cursor: pointer;
+  color: var(--rakaez-text-on-header);
+  font-size: 13px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 4px 10px;
+  opacity: 0.9;
+  background: transparent;
+  font-family: inherit;
+}
+.rk-theme-toggle:hover { opacity: 1; }
+
+.rk-tabs { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+
+.rk-tab {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--rakaez-border);
+  background: var(--rakaez-surface);
+  color: var(--rakaez-text);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all .15s ease;
+}
+.rk-tab:hover { border-color: var(--rakaez-gold); transform: translateY(-1px); }
+.rk-tab.active {
+  background: var(--rakaez-gold-bright);
+  border-color: var(--rakaez-gold-bright);
+  color: #3A2C1A;
+  box-shadow: 0 6px 16px -6px rgba(180, 134, 11, 0.55);
+}
+
+.rk-card {
+  background: var(--rakaez-surface);
+  border: 1px solid var(--rakaez-border);
+  border-radius: 14px;
+  padding: 16px;
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+.rk-card:hover { box-shadow: 0 8px 20px -10px rgba(58, 44, 26, 0.18); transform: translateY(-2px); }
+
+.rk-input, .rk-select {
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--rakaez-border);
+  font-family: inherit;
+  font-size: 14px;
+  background: var(--rakaez-surface);
+  color: var(--rakaez-text);
+  outline: none;
+  transition: border-color .15s ease;
+}
+.rk-input:focus, .rk-select:focus { border-color: var(--rakaez-gold); }
+
+.rk-btn {
+  padding: 11px 20px;
+  border-radius: 10px;
+  border: none;
+  background: var(--rakaez-gold-bright);
+  color: #3A2C1A;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: filter .15s ease, transform .1s ease;
+}
+.rk-btn:hover { filter: brightness(1.06); }
+.rk-btn:active { transform: scale(0.98); }
+.rk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.rk-btn-outline {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--rakaez-gold);
+  background: transparent;
+  color: var(--rakaez-text);
+  font-weight: 700;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.rk-btn-outline:hover { background: rgba(184, 134, 11, 0.08); }
+
+.rk-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.rk-badge.success { background: rgba(22,163,74,.12); color: var(--rakaez-success); }
+.rk-badge.danger { background: rgba(179,38,30,.12); color: var(--rakaez-danger); }
+
+.rk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.rk-link { color: var(--rakaez-text); cursor: pointer; font-weight: 600; }
+.rk-link:hover { text-decoration: underline; }
+
+.rk-fade-in { animation: rkFadeIn .35s ease both; }
+@keyframes rkFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}

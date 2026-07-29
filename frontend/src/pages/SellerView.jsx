@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { searchParts, checkout } from "../api/client.js";
+import { useLanguage } from "../i18n/LanguageContext.jsx";
 
 export default function SellerView() {
+  const { t } = useLanguage();
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [cart, setCart] = useState([]); // { partId, name, price, quantity }
@@ -23,13 +25,14 @@ export default function SellerView() {
 
   async function onCheckout() {
     const items = cart.map((c) => ({ partId: c.partId, quantity: c.quantity }));
-    // branchId=1, sellerId=1 are seed values — replace with the logged-in user's branch/id
-    const invoice = await checkout(1, 1, items);
+    // branchId is taken from the logged-in seller's account on the server side;
+    // passing 1 here is only a fallback used if the account has no branch set.
+    const invoice = await checkout(1, items);
     if (invoice.error) {
-      alert("خطأ: " + invoice.error);
+      alert(`${t("error_prefix")}: ${invoice.error}`);
       return;
     }
-    alert("تم إصدار الفاتورة رقم " + invoice.invoice_number);
+    alert(`${t("invoice_issued")} ${invoice.invoice_number}`);
     setCart([]);
     onSearch();
   }
@@ -38,29 +41,38 @@ export default function SellerView() {
     <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
       <div>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <input style={{ flex: 1, padding: 10 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث عن قطعة، رقم قطعة، أو VIN" />
-          <button onClick={onSearch}>بحث</button>
+          <input className="rk-input" style={{ flex: 1 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("seller_search_placeholder")} />
+          <button className="rk-btn" onClick={onSearch}>{t("search_btn")}</button>
         </div>
         <table width="100%">
           <thead>
-            <tr><th>القطعة</th><th>السعر</th><th>الموقع</th><th></th></tr>
+            <tr>
+              <th>{t("col_part")}</th>
+              <th>{t("col_price")}</th>
+              <th>{t("col_location")}</th>
+              <th></th>
+            </tr>
           </thead>
           <tbody>
             {results.map((p) => (
               <tr key={p.id}>
                 <td>{p.name}</td>
-                <td>{p.price} ر.س</td>
+                <td>
+                  {p.price} {t("sar")}
+                </td>
                 <td style={{ fontSize: 12 }}>
                   {p.inventory?.[0] ? `📍 قسم ${p.inventory[0].shelf_section} رف ${p.inventory[0].shelf_number}` : "-"}
                 </td>
-                <td><button onClick={() => addToCart(p)}>إضافة</button></td>
+                <td>
+                  <button className="rk-btn" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => addToCart(p)}>{t("add_btn")}</button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: 14 }}>
-        <h3>الفاتورة</h3>
+      <div className="rk-card">
+        <h3>{t("invoice_title")}</h3>
         {cart.map((c) => (
           <div key={c.partId} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
             <span>{c.name} × {c.quantity}</span>
@@ -69,11 +81,13 @@ export default function SellerView() {
         ))}
         <hr />
         <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
-          <span>الإجمالي (شامل 15% ضريبة)</span>
-          <span>{total.toFixed(2)} ر.س</span>
+          <span>{t("total_incl_vat")}</span>
+          <span>
+            {total.toFixed(2)} {t("sar")}
+          </span>
         </div>
-        <button style={{ width: "100%", marginTop: 10, padding: 10 }} onClick={onCheckout} disabled={!cart.length}>
-          إتمام البيع
+        <button className="rk-btn" style={{ width: "100%", marginTop: 10 }} onClick={onCheckout} disabled={!cart.length}>
+          {t("checkout_btn")}
         </button>
       </div>
     </div>
