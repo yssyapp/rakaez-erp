@@ -1,225 +1,75 @@
-# Rakaez ERP - نظام إدارة قطع الغيار
+# Rakaez ERP — ركائز لقطع غيار السيارات
 
-## 🚀 نظام متكامل لإدارة متاجر قطع غيار السيارات في السعودية
+نظام SaaS متعدد المستأجرين (Multi-Tenant) لمحلات قطع غيار السيارات في السعودية: كل محل (Organization) له بياناته ومخزونه وفروعه معزولة تمامًا عن بقية المحلات، مع نقاط بيع (POS)، فوترة ضريبية متوافقة مع ZATCA (المرحلة الأولى)، دفع إلكتروني عبر Moyasar، واشتراكات دورية تلقائية.
 
-### المميزات الرئيسية:
+> **تطبيق الموبايل** (عملاء + بائعون) مشروع منفصل: [rakaez-parts-mobile](https://github.com/yssyapp/rakaez-parts-mobile).
 
-#### 1. **إدارة الاشتراكات** 💳
-- 3 باقات اشتراك (أساسية - متقدمة - متميزة)
-- السعر بالريال السعودي (37 - 112 - 375 ريال/شهر)
-- إدارة الدفع والفواتير
-- تكامل مع Stripe
-
-#### 2. **إدارة قطع الغيار** 🔧
-- إضافة وتعديل وحذف القطع
-- تتبع المخزون
-- البحث والتصفية المتقدمة
-- تصنيفات وفئات
-
-#### 3. **إدارة الطلبات** 📦
-- إنشاء وتتبع الطلبات
-- إدارة حالة الطلب
-- الفواتير التلقائية
-- تكامل مع ZATCA
-
-#### 4. **التقارير والإحصائيات** 📊
-- تقارير المبيعات
-- تحليل الأداء
-- إحصائيات العملاء
-- رسوم بيانية مفصلة
-
-#### 5. **إدارة المستخدمين** 👥
-- إدارة الموظفين
-- صلاحيات وأدوار مختلفة
-- نظام تسجيل الدخول الآمن
-- ملفات شخصية
-
-#### 6. **الذكاء الاصطناعي** 🤖
-- توصيات ذكية (Pro + Enterprise)
-- تنبؤ بالطلب
-- تحليل السلوك
-
----
-
-## 🛠️ التثبيت
-
-### المتطلبات:
-- Node.js >= 16.0.0
-- MongoDB >= 4.4
-- npm >= 8.0.0
-
-### خطوات التثبيت:
-
-```bash
-# 1. استنسخ المستودع
-git clone https://github.com/yssyapp/rakaez-erp.git
-cd rakaez-erp
-
-# 2. ثبت المكتبات
-npm install
-
-# 3. انسخ ملف الإعدادات
-cp .env.example .env
-
-# 4. عدّل ملف .env بالمعلومات الخاصة بك
-# قم بإضافة:
-# - رابط قاعدة البيانات
-# - مفاتيح API
-# - بيانات البريد الإلكتروني
-
-# 5. شغّل التطبيق
-npm run dev
-```
-
----
-
-## 📱 الهيكل العام للمشروع
+## البنية
 
 ```
 rakaez-erp/
-├── src/
-│   ├── api/
-│   │   ├── routes/
-│   │   │   ├── auth.routes.js
-│   │   │   ├── parts.routes.js
-│   │   │   ├── orders.routes.js
-│   │   │   ├── subscriptions.routes.js
-│   │   │   ├── invoices.routes.js
-│   │   │   ├── reports.routes.js
-│   │   │   └── payments.routes.js
-│   │   ├── controllers/
-│   │   ├── middleware/
-│   │   └── validators/
-│   ├── database/
-│   │   ├── models/
-│   │   └── config.js
-│   ├── utils/
-│   ├── config/
-│   └── app.js
-├── frontend/
-│   ├── components/
-│   ├── pages/
-│   ├── styles/
-│   └── App.jsx
-├── tests/
-├── .env.example
-├── package.json
-└── server.js
+├── backend/     Node.js (Express) + PostgreSQL — REST API
+│   └── src/
+│       ├── index.js          نقطة تشغيل الخادم
+│       ├── db/pool.js         الاتصال بقاعدة البيانات
+│       ├── routes/            auth.js, parts.js, sales.js, billing.js, admin.js
+│       └── utils/             moyasar.js (الدفع), zatca.js (QR الفاتورة الضريبية)
+│   └── scripts/billing-cron.js  تجديد الاشتراكات الشهرية تلقائيًا (يُشغَّل بجدولة يومية)
+└── frontend/    React + Vite — ثلاث واجهات: العميل / البائع (POS) / لوحة تحكم الإدارة
 ```
 
----
+## المميزات الفعلية المبنية الآن
 
-## 🔐 الأمان
+- **عزل بيانات صارم بين المحلات**: كل استعلام بقاعدة البيانات مقيّد بـ `organization_id` المأخوذ من رمز الدخول (JWT) نفسه، وليس من الطلب — لا يمكن لمحل الوصول لبيانات محل آخر.
+- **نقاط بيع (POS)**: إنقاص المخزون فوريًا عند البيع داخل معاملة قاعدة بيانات واحدة (`BEGIN/COMMIT/ROLLBACK`) تمنع بيع كمية أكبر من المتوفر فعليًا، حتى تحت ضغط طلبات متزامنة.
+- **بحث القطع** بالاسم / رقم القطعة / رقم الهيكل (VIN)، مع موقع الرف لكل قطعة بكل فرع.
+- **فوترة ضريبية**: توليد QR متوافق مع المرحلة الأولى من ZATCA لكل فاتورة بيع (`utils/zatca.js`).
+- **دفع إلكتروني واشتراكات**: تكامل مع Moyasar لتحصيل الدفعات، وحفظ رمز بطاقة قابل لإعادة الاستخدام لتفعيل التجديد التلقائي الشهري (`scripts/billing-cron.js`).
+- **أمان الخادم**: تسجيل دخول بـ JWT + كلمات مرور مشفّرة بـ bcrypt، `helmet` لسياسات أمان الترويسات، `express-rate-limit` للحد من هجمات التخمين، `morgan` لتسجيل الطلبات، واستعلامات SQL معامَلة بالكامل (Parameterized Queries) لمنع حقن SQL بنيويًا.
 
-- تشفير كلمات المرور بـ bcrypt
-- JWT للمصادقة
-- CORS مفعّل
-- معدلات حماية من الهجمات
-- التحقق من الصيانة (Helmet)
-- تشفير البيانات الحساسة
+## التشغيل محليًا
 
----
-
-## 🌐 API الأساسي
-
-### المصادقة
-```
-POST   /api/auth/register
-POST   /api/auth/login
-POST   /api/auth/logout
-GET    /api/auth/me
-```
-
-### قطع الغيار
-```
-GET    /api/parts
-GET    /api/parts/:id
-POST   /api/parts
-PUT    /api/parts/:id
-DELETE /api/parts/:id
-```
-
-### الطلبات
-```
-GET    /api/orders
-GET    /api/orders/:id
-POST   /api/orders
-PUT    /api/orders/:id
-DELETE /api/orders/:id
-```
-
-### الاشتراكات
-```
-GET    /api/subscriptions
-POST   /api/subscriptions/checkout
-POST   /api/subscriptions/upgrade
-POST   /api/subscriptions/cancel
-```
-
-### الفواتير
-```
-GET    /api/invoices
-GET    /api/invoices/:id
-POST   /api/invoices/generate
-GET    /api/invoices/:id/pdf
-```
-
-### التقارير
-```
-GET    /api/reports/sales
-GET    /api/reports/products
-GET    /api/reports/customers
-GET    /api/reports/performance
-```
-
----
-
-## 💳 الدفع
-
-نستخدم **Stripe** لمعالجة الدفع:
-- بطاقات ائتمان
-- محافظ رقمية
-- التحويلات البنكية
-
----
-
-## 📄 الفواتير
-
-تكامل كامل مع **ZATCA** (الفاتورة الإلكترونية السعودية):
-- إصدار فواتير تلقائية
-- توقيع رقمي
-- ملف حفظ آمن
-- طباعة وتصدير PDF
-
----
-
-## 🧪 الاختبارات
-
+### 1) قاعدة البيانات
 ```bash
-npm test
+createdb rakaez
+psql rakaez < backend/src/db/schema.sql
+psql rakaez < backend/src/db/seed.sql
 ```
 
+### 2) الباك اند
+```bash
+cd backend
+cp .env.example .env   # عدّل القيم: DATABASE_URL, JWT_SECRET, مفاتيح Moyasar
+npm install
+npm run dev             # http://localhost:4000
+```
+
+القيم المطلوبة في `.env` (راجع `.env.example` بمجلد backend، وليس الملف بجذر المشروع — انظر ملاحظة أدناه):
+
+| المتغير | الوصف |
+|---|---|
+| `DATABASE_URL` | رابط اتصال PostgreSQL |
+| `JWT_SECRET` | سرّ توقيع رموز الدخول — **إلزامي غيّره لقيمة عشوائية طويلة قبل أي نشر فعلي** |
+| `MOYASAR_PUBLISHABLE_KEY` / `MOYASAR_SECRET_KEY` | مفاتيح بوابة الدفع (Moyasar) |
+
+### 3) الفرونت اند
+```bash
+cd frontend
+npm install
+npm run dev              # http://localhost:5173
+```
+
+## الخطوات المقترحة بعد ذلك
+
+1. إضافة صلاحيات مفصّلة أكثر (عميل / بائع / مدير) حسب نمو الحاجة.
+2. تفعيل تكامل ZATCA الكامل (المرحلة الثانية: توقيع رقمي وتصريح إلكتروني عبر Fatoora) — الموجود حاليًا هو QR المرحلة الأولى فقط.
+3. بناء تطبيقات iOS/Android عبر مشروع [rakaez-parts-mobile](https://github.com/yssyapp/rakaez-parts-mobile) لتستهلك نفس الـ API.
+4. نشر الباك اند وقاعدة البيانات على سيرفر سحابي (Railway/AWS) وضبط `CORS_ALLOWED_ORIGINS` لبيئة الإنتاج.
+
 ---
 
-## 📞 الدعم
-
-للدعم والأسئلة:
-- البريد الإلكتروني: support@rakaez.sa
-- الهاتف: +966 50 123 4567
-- الموقع: https://rakaez.sa
-
----
-
-## 📜 الرخصة
-
-MIT License - انظر LICENSE للتفاصيل
-
----
-
-## 👥 المطورون
-
-- **yssyapp** - المؤسس والمطور الرئيسي
-
----
-
-**صُنع بـ ❤️ للسعودية** 🇸🇦
+**ملاحظة تنظيف مطلوبة:** ملف `.env.example` الموجود في **جذر** المستودع (وليس داخل `backend/`) متبقٍّ من هيكل قديم مختلف تمامًا (MongoDB + Stripe) تم حذفه من المشروع — قيمه (`MONGODB_URI`, `STRIPE_SECRET_KEY`...) لا تُستخدم في أي كود حالي وتسبب لبسًا لأي مطوّر جديد. يُفضّل حذفه بأمر:
+```bash
+git rm .env.example
+git commit -m "حذف .env.example القديم (متبقٍّ من هيكل MongoDB/Stripe المحذوف)"
+```
